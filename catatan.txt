@@ -1,0 +1,722 @@
+npm install express dotenv jsonwebtoken bcrypt pg
+
+npm install nodemon --save-dev
+
+mkdir src
+cd src
+mkdir controllers routes models middlewares config utils
+cd ..
+
+type nul > src/app.js
+type nul > src/server.js
+type nul > .env
+
+npm run dev / node hash.js ada hasil $2b$10$fk20E.N0gahAT9cV2yaFZeIxAL423ZrxuDCOAK9vF1LieSFWEWyAa
+
+
+Mantap, ini sudah **berhasil masuk PostgreSQL** ✅
+Warning soal code page itu **tidak masalah**, bisa diabaikan dulu.
+
+Sekarang kita lanjut ke inti: **buat database dan tabel** 🔥
+
+---
+
+# 🧱 STEP 1 — Buat Database
+
+Di dalam `psql`, jalankan:
+
+```sql id="d1xk3c"
+CREATE DATABASE auth_db;
+```
+
+---
+
+# 🔄 Pindah ke Database
+
+```sql id="w7d6cl"
+\c auth_db
+```
+
+Kalau berhasil akan muncul:
+
+```
+You are now connected to database "auth_db"
+```
+
+---
+
+# 🗄️ STEP 2 — Buat Semua Tabel
+
+Copy langsung semua ini (boleh sekali paste):
+
+```sql id="y9m3pu"
+-- USERS
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  name VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ROLES
+CREATE TABLE roles (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(50),
+  description TEXT
+);
+
+-- USER ROLES (multi role)
+CREATE TABLE user_roles (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  role_id INT REFERENCES roles(id) ON DELETE CASCADE
+);
+
+-- MENUS (multi level)
+CREATE TABLE menus (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100),
+  path VARCHAR(100),
+  parent_id INT REFERENCES menus(id) ON DELETE CASCADE,
+  menu_order INT
+);
+
+-- ROLE MENUS
+CREATE TABLE role_menus (
+  id SERIAL PRIMARY KEY,
+  role_id INT REFERENCES roles(id) ON DELETE CASCADE,
+  menu_id INT REFERENCES menus(id) ON DELETE CASCADE
+);
+```
+
+---
+
+# 🧪 STEP 3 — Insert Data Awal
+
+```sql id="aq9i4l"
+INSERT INTO roles (name) VALUES ('Admin'), ('Manager'), ('User');
+
+INSERT INTO users (username, password, name)
+VALUES ('admin', '123456', 'Admin Utama');
+```
+
+---
+
+# 🔗 STEP 4 — Hubungkan User ke Role
+
+Misalnya admin punya 2 role:
+
+```sql id="rx0bde"
+INSERT INTO user_roles (user_id, role_id)
+VALUES (1, 1), (1, 2);
+```
+
+👉 Artinya:
+
+* user `admin` punya role **Admin & Manager**
+* nanti saat login → akan diminta pilih role
+
+---
+
+# ✅ STEP 5 — Cek Data
+
+```sql id="lf9m7c"
+SELECT * FROM users;
+SELECT * FROM roles;
+SELECT * FROM user_roles;
+```
+
+---
+
+# 🔥 Sampai sini kamu sudah punya:
+
+✔ Database siap
+✔ Struktur sesuai soal
+✔ Multi-role sudah bisa
+✔ Siap login system
+
+---
+
+# 🚀 NEXT STEP (INTI TUGAS)
+
+Sekarang kita masuk ke bagian paling penting:
+
+## 🔐 Login + JWT + Multi Role
+
+Kita akan buat:
+
+* endpoint login
+* validasi password (bcrypt)
+* ambil role user
+* kalau multi role → return pilihan
+* generate JWT
+
+---
+
+👉 Ketik aja:
+**"lanjut login jwt"**
+
+Aku bakal kasih kamu kode backend lengkap (controller + route) siap jalan 🔥
+
+
+Bagus, berarti fondasi kamu sudah kuat 👍
+Sekarang kita masuk ke bagian **inti tugas: LOGIN + JWT + MULTI ROLE** 🔐🔥
+
+Aku bikin step-by-step + langsung kode siap pakai.
+
+---
+
+# 🔐 STEP 1 — Hash Password (Penting!)
+
+Sekarang password masih `"123456"` (plain text). Kita harus hash pakai **bcrypt**
+
+## 👉 Generate hash dulu (sekali saja)
+
+Buat file sementara: `hash.js`
+
+```js
+const bcrypt = require("bcrypt");
+
+async function hashPassword() {
+  const password = "123456";
+  const hashed = await bcrypt.hash(password, 10);
+  console.log(hashed);
+}
+
+hashPassword();
+```
+
+Jalankan:
+
+```bash
+node hash.js
+```
+
+Copy hasil hash (contoh):
+
+```
+$2b$10$abc123...
+```
+
+---
+
+## 👉 Update di database
+
+Di `psql`:
+
+```sql
+UPDATE users
+SET password = 'HASIL_HASH_KAMU'
+WHERE username = 'admin';
+```
+
+---
+
+# 🔐 STEP 2 — Buat Controller Login
+
+📄 `src/controllers/authController.js`
+
+```js
+const db = require("../config/db");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+exports.login = async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    // cek user
+    const userResult = await db.query(
+      "SELECT * FROM users WHERE username = $1",
+      [username]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    const user = userResult.rows[0];
+
+    // cek password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Password salah" });
+    }
+
+    // ambil roles
+    const roleResult = await db.query(
+      `SELECT r.id, r.name 
+       FROM roles r
+       JOIN user_roles ur ON ur.role_id = r.id
+       WHERE ur.user_id = $1`,
+      [user.id]
+    );
+
+    const roles = roleResult.rows;
+
+    // kalau lebih dari 1 role
+    if (roles.length > 1) {
+      return res.json({
+        message: "Pilih role",
+        user_id: user.id,
+        roles: roles,
+      });
+    }
+
+    // kalau hanya 1 role → langsung login
+    const token = jwt.sign(
+      {
+        user_id: user.id,
+        role_id: roles[0].id,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({ token });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+```
+
+---
+
+# 🔐 STEP 3 — Endpoint Pilih Role
+
+Tambahkan di file yang sama:
+
+```js
+exports.selectRole = async (req, res) => {
+  const { user_id, role_id } = req.body;
+
+  try {
+    const token = jwt.sign(
+      { user_id, role_id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({ token });
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+```
+
+---
+
+# 🌐 STEP 4 — Routes
+
+📄 `src/routes/authRoutes.js`
+
+```js
+const express = require("express");
+const router = express.Router();
+const authController = require("../controllers/authController");
+
+router.post("/login", authController.login);
+router.post("/select-role", authController.selectRole);
+
+module.exports = router;
+```
+
+---
+
+# 🔌 STEP 5 — Hubungkan ke app.js
+
+📄 `src/app.js`
+
+```js
+const express = require("express");
+const app = express();
+const db = require("./config/db");
+const authRoutes = require("./routes/authRoutes");
+
+app.use(express.json());
+
+db.connect()
+  .then(() => console.log("Database connected"))
+  .catch((err) => console.error(err));
+
+app.use("/auth", authRoutes);
+
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
+
+module.exports = app;
+```
+
+---
+
+# 🧪 STEP 6 — Testing di Postman (atau Postman)
+
+## 👉 Login
+
+**POST**
+
+```
+http://localhost:3000/auth/login
+```
+
+Body JSON:
+
+```json
+{
+  "username": "admin",
+  "password": "123456"
+}
+```
+
+---
+
+## 🔄 Response kalau multi-role:
+
+```json
+{
+  "message": "Pilih role",
+  "user_id": 1,
+  "roles": [
+    { "id": 1, "name": "Admin" },
+    { "id": 2, "name": "Manager" }
+  ]
+}
+```
+
+---
+
+## 👉 Pilih Role
+
+**POST**
+
+```
+http://localhost:3000/auth/select-role
+```
+
+```json
+{
+  "user_id": 1,
+  "role_id": 1
+}
+```
+
+---
+
+## ✅ Response:
+
+```json
+{
+  "token": "JWT_TOKEN"
+}
+```
+
+---
+
+# 🎉 Sampai sini kamu sudah berhasil:
+
+✔ Login system
+✔ Password aman (bcrypt)
+✔ Multi-role support
+✔ JWT authentication
+
+---
+
+# 🚀 NEXT STEP (BIAR SEMPURNA)
+
+Selanjutnya sesuai soal:
+
+👉 **Menu Management + Role Access + Menu Tree**
+
+Ini bagian yang biasanya bikin nilai kamu tinggi 🔥
+
+---
+
+Ketik aja:
+👉 **"lanjut menu & access control"**
+
+nanti aku bantu:
+
+* struktur menu tree (infinite level)
+* query recursive
+* filtering menu berdasarkan role
+
+
+📌 1. Apakah yang sudah kita buat sesuai permintaan?
+✔ KITA SUDAH MENYELESAIKAN:
+✅ (1) Login username & password
+
+✔ Sudah selesai
+
+Node.js login API
+bcrypt password hashing
+PostgreSQL user table
+✅ (2) Multi role (jabatan ganda)
+
+✔ Sudah selesai
+
+user bisa punya banyak role (user_roles)
+sistem menampilkan pilihan role saat login
+endpoint select-role
+✅ (3) JWT authentication
+
+✔ Sudah selesai
+
+login menghasilkan JWT
+role dimasukkan ke token
+middleware validasi token
+⚠️ (4) Menu sesuai role
+
+✔ SUDAH KITA MULAI
+
+kita sudah buat:
+tabel menus
+role_menus
+endpoint /menus berdasarkan role
+
+❗ TAPI BELUM LENGKAP
+
+Yang belum:
+
+menu tree (nested infinite level belum full recursive)
+management menu (CRUD lengkap belum full)
+UI-ready response (struktur tree belum final)
+📌 2. ERD (Desain Database)
+
+✔ SUDAH KITA BUAT LENGKAP
+
+Kamu sudah punya:
+
+users
+roles
+user_roles
+menus (hierarchy)
+role_menus
+
+👉 Ini sudah sesuai standar industri untuk RBAC (Role Based Access Control)
+
+📌 3. Dokumentasi API (Frontend ready)
+
+✔ SUDAH ADA DASARNYA
+
+Yang sudah ada:
+
+POST /auth/login
+POST /auth/select-role
+GET /menus
+
+❗ Tapi BELUM RAPI DOKUMENTASI FINAL
+
+Belum ada:
+
+format dokumentasi resmi (Swagger/OpenAPI)
+penjelasan response struktur final
+grouping endpoint per module
+📌 4. JWT (WAJIB SOAL)
+
+✔ SUDAH TERPENUHI
+
+login menghasilkan token
+token menyimpan user_id + role_id
+middleware validasi token
+protected route sudah jalan
+🧠 KESIMPULAN JUJUR
+🎯 STATUS PROJECT KAMU:
+Komponen	Status
+Login system	✅ Selesai
+Multi-role login	✅ Selesai
+JWT auth	✅ Selesai
+Database & ERD	✅ Selesai
+Menu basic by role	⚠️ 80%
+Menu tree infinite	❌ Belum final
+Role-menu management UI/API lengkap	⚠️ sebagian
+API documentation formal	❌ belum
+🚀 ARTINYA:
+
+👉 Kamu sudah 70–80% selesai tugas besar ini
+👉 Sisanya adalah “polishing + fitur lanjutan”
+
+🔥 LANGKAH TERAKHIR SUPAYA NILAI MAKSIMAL
+
+Kalau kamu mau jadi A / A+ level, kita harus tambahkan:
+
+1. 🌳 Menu Tree Recursive (WAJIB bagus)
+parent-child tanpa batas
+output JSON rapi seperti aplikasi perusahaan
+2. ⚙️ Role Management lengkap
+assign menu ke role via API
+update access dynamic
+3. 📄 Dokumentasi API rapi (seperti perusahaan)
+bisa pakai format Swagger
+👉 Saran saya (jujur sebagai mentor)
+
+Jangan berhenti di sini.
+
+Kalau kamu stop sekarang:
+
+nilai: cukup / standar
+
+Kalau kita lanjut 1–2 step lagi:
+
+nilai: bagus / A level
+🚀 Kalau kamu siap lanjut
+
+Ketik saja:
+
+👉 "lanjut menu tree final"
+
+Nanti aku bantu bikin:
+✔ menu hierarchy tanpa batas
+✔ output JSON seperti aplikasi real perusahaan
+✔ plus final polishing biar tugas kamu terlihat profesional 💯
+
+🔥 Mantap — sekarang ini sudah hampir pasti **SEMUA SUDAH BENAR**
+
+Tapi ada satu hal penting dari output kamu:
+
+👉 Request `/menus` **tidak error, tapi juga tidak mengeluarkan data**
+
+Artinya kemungkinan besar:
+
+---
+
+# 🧠 ANALISA KONDISI KAMU
+
+## ✔ JWT sudah benar
+
+Token valid (tidak error lagi)
+
+## ✔ Authorization header sudah benar
+
+```text
+Bearer eyJhbGciOi...
+```
+
+## ⚠️ Tapi response kosong (tidak muncul output)
+
+👉 Ini biasanya karena:
+
+---
+
+# ❗ PENYEBAB PALING UMUM
+
+## 1. Role belum punya menu
+
+Cek tabel ini di PostgreSQL:
+
+```sql id="chk1"
+SELECT * FROM role_menus;
+```
+
+Kalau kosong → INI PENYEBABNYA
+
+---
+
+## 2. Menu belum dibuat
+
+```sql id="chk2"
+SELECT * FROM menus;
+```
+
+---
+
+## 3. Query join tidak menemukan data
+
+Karena ini query kamu:
+
+```sql id="qry1"
+SELECT m.*
+FROM menus m
+JOIN role_menus rm ON rm.menu_id = m.id
+WHERE rm.role_id = $1;
+```
+
+👉 Kalau `role_menus` kosong → hasilnya kosong
+
+---
+
+# 🔥 SOLUSI CEPAT (WAJIB DILAKUKAN)
+
+## STEP 1 — Buat menu dulu
+
+Di PostgreSQL:
+
+```sql id="fix1"
+INSERT INTO menus (name, path, parent_id, menu_order)
+VALUES 
+('Dashboard', '/dashboard', NULL, 1),
+('Master User', '/users', NULL, 2);
+```
+
+---
+
+## STEP 2 — Assign ke role
+
+```sql id="fix2"
+INSERT INTO role_menus (role_id, menu_id)
+VALUES 
+(1, 1),
+(1, 2);
+```
+
+---
+
+## STEP 3 — TEST ULANG
+
+```powershell id="test1"
+Invoke-RestMethod -Uri "http://localhost:3000/menus" `
+-Method GET `
+-Headers @{ "Authorization" = "Bearer TOKEN_KAMU" }
+```
+
+---
+
+# 🎯 HASIL YANG DIHARAPKAN
+
+```json id="ok1"
+[
+  {
+    "id": 1,
+    "name": "Dashboard"
+  },
+  {
+    "id": 2,
+    "name": "Master User"
+  }
+]
+```
+
+---
+
+# 🧠 KESIMPULAN
+
+✔ Login = SUKSES
+✔ JWT = SUKSES
+✔ Role selection = SUKSES
+⚠️ Menu = BELUM ADA DATA (ini masalah utama kamu sekarang)
+
+---
+
+# 🚀 NEXT LEVEL (SETELAH INI)
+
+Kalau sudah muncul menu, kita bisa lanjut:
+
+## 🔥 Menu tree (parent-child tanpa batas)
+
+## 🔥 Role management API
+
+## 🔥 Final QA report (biar tugas kamu terlihat profesional)
+
+---
+
+# 👉 SEKARANG LAKUKAN INI
+
+Jalankan SQL insert menu + role_menus
+lalu kirim hasil `/menus`
+
+Nanti aku bantu finalisasi sampai **siap dikumpulkan (A level)** 💯
+

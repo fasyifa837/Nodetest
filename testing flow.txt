@@ -1,0 +1,360 @@
+Bagus, ini langkah yang benar 👍 Sekarang kita masuk ke **QA (Quality Assurance) / testing flow** supaya kamu bisa yakin semua fitur sudah sesuai soal.
+
+Aku bikin seperti checklist + cara ngetesnya biar kamu bisa “simulasi perusahaan”.
+
+---
+
+# 🧪 🧾 QA FLOW PROJECT KAMU
+
+Kita test dari awal sampai akhir:
+
+---
+
+# 1. 🟢 TEST SERVER & DATABASE
+
+## ✅ Cek server
+
+```bash id="qa1"
+npm run dev
+```
+
+Harus muncul:
+
+```text id="qa2"
+Server running on port 3000
+Database connected
+```
+
+---
+
+# 2. 🔐 TEST LOGIN
+
+## Endpoint:
+
+```http id="qa3"
+POST /auth/login
+```
+
+## Body:
+
+```json id="qa4"
+{
+  "username": "admin",
+  "password": "123456"
+}
+```
+
+---
+
+## ✔ Expected hasil:
+
+### Kasus A (1 role):
+
+```json id="qa5"
+{
+  "token": "JWT_TOKEN"
+}
+```
+
+---
+
+### Kasus B (multi role):
+
+```json id="qa6"
+{
+  "message": "Pilih role",
+  "roles": [...]
+}
+```
+
+---
+
+# 3. 🔀 TEST PILIH ROLE
+
+## Endpoint:
+
+```http id="qa7"
+POST /auth/select-role
+```
+
+## Body:
+
+```json id="qa8"
+{
+  "user_id": 1,
+  "role_id": 1
+}
+```
+
+---
+
+## ✔ Expected:
+
+```json id="qa9"
+{
+  "token": "JWT_TOKEN_BARU"
+}
+```
+
+---
+
+# 4. 🔑 TEST AUTH TOKEN (WAJIB)
+
+## Endpoint:
+
+```http id="qa10"
+GET /menus
+```
+
+## Header:
+
+```text id="qa11"
+Authorization: Bearer <TOKEN>
+```
+
+---
+
+## ❌ Jika salah:
+
+```json id="qa12"
+{"message":"Token tidak ditemukan"}
+```
+
+## ❌ Jika invalid:
+
+```json id="qa13"
+{"message":"Token tidak valid"}
+```
+
+## ✔ Jika benar:
+
+```json id="qa14"
+[
+  {
+    "id": 1,
+    "name": "Dashboard"
+  }
+]
+```
+
+---
+
+# 5. 🌳 TEST MENU ACCESS (ROLE BASED)
+
+Coba login dengan role berbeda:
+
+## Admin:
+
+✔ lihat semua menu
+
+## User:
+
+✔ hanya menu terbatas
+
+👉 Ini bukti sistem RBAC kamu berhasil
+
+---
+
+# 6. 🧩 TEST DATABASE INTEGRITY
+
+Di PostgreSQL:
+
+```sql id="qa15"
+SELECT * FROM users;
+SELECT * FROM roles;
+SELECT * FROM user_roles;
+SELECT * FROM menus;
+SELECT * FROM role_menus;
+```
+
+---
+
+# 7. 🔥 TEST EDGE CASE (INI PENTING UNTUK NILAI)
+
+## ❌ Salah password
+
+→ harus reject
+
+## ❌ User tidak ada
+
+→ harus 404
+
+## ❌ Token expired
+
+→ harus 401
+
+## ❌ Role tidak dipilih
+
+→ tidak boleh akses menu
+
+---
+
+# 🧠 8. CHECKLIST SESUAI SOAL
+
+## Soal kamu:
+
+### 1. Node.js + PostgreSQL
+
+✔ DONE
+
+### 2. ERD
+
+✔ DONE
+
+### 3. API dokumentasi
+
+✔ BASIC DONE (but bisa dirapikan lagi)
+
+### 4. JWT login
+
+✔ DONE
+
+---
+
+# 🧪 9. BONUS QA (BIAR TERLIHAT PROFESIONAL)
+
+Kalau mau naik nilai:
+
+## ✔ Test pakai Postman Collection
+
+* group auth
+* group menu
+* group role
+
+## ✔ Tambahkan screenshot:
+
+* login sukses
+* token keluar
+* menu muncul
+
+---
+
+# 🚀 HASIL QA KAMU
+
+Kalau semua test berhasil:
+
+👉 project kamu sudah **siap dinilai seperti aplikasi perusahaan nyata**
+
+---
+
+# 🔥 NEXT LEVEL (OPSIONAL TAPI POWERFUL)
+
+Kalau kamu mau upgrade:
+
+* automated testing (Jest)
+* Swagger documentation
+* menu tree recursion final polish
+
+---
+
+# 👉 Sekarang giliran kamu
+
+Coba QA ini dulu:
+
+✔ login
+✔ pilih role
+✔ hit `/menus`
+
+Lalu balas:
+
+👉 **"QA sudah jalan"**
+
+Nanti aku bantu:
+🔥 rapikan final + bikin “versi A+ submission” (biar terlihat profesional banget)
+
+
+PS C:\Users\Administrator> Invoke-RestMethod -Uri "http://localhost:3000/auth/login" `
+>> -Method POST `
+>> -Headers @{ "Content-Type" = "application/json" } `
+>> -Body '{"username":"admin","password":"123456"}'
+
+message    user_id roles
+-------    ------- -----
+Pilih role       1 {@{id=1; name=Admin}, @{id=2; name=Manager}}
+
+
+PS C:\Users\Administrator>
+
+PS C:\Users\Administrator> Invoke-RestMethod -Uri "http://localhost:3000/auth/select-role" `
+>> -Method POST `
+>> -Headers @{ "Content-Type" = "application/json" } `
+>> -Body '{"user_id":1,"role_id":1}'
+
+token
+-----
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJyb2xlX2lkIjoxLCJpYXQiOjE3NzcyNzc3MTMsImV4cCI6MTc3NzI4MTMxM30...
+
+
+PS C:\Users\Administrator> Invoke-RestMethod -Uri "http://localhost:3000/menus" `
+>> -Method GET `
+>> -Headers @{ "Authorization" = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJyb2xlX2lkIjoxLCJpYXQiOjE3NzcyNzc4NzIsImV4cCI6MTc3NzI4MTQ3Mn0.n0YzZOrijaigglsBIMmuYhqnUDj5KilFmkuTRamuKKA" }
+
+
+id         : 1
+name       : Dashboard
+path       : /dashboard
+parent_id  :
+menu_order : 1
+
+id         : 2
+name       : Master User
+path       : /users
+parent_id  :
+menu_order : 2
+
+
+
+PS C:\Users\Administrator>
+
+Invoke-RestMethod -Uri "http://localhost:3000/auth/login" `
+-Method POST `
+-Body '{"username":"admin","password":"123456"}' `
+-ContentType "application/json"
+
+//////////////////////////////////////
+
+
+PS C:\Users\Administrator> Invoke-RestMethod -Uri "http://localhost:3000/auth/login" `
+>> -Method POST `
+>> -Body '{"username":"admin","password":"123456"}' `
+>> -ContentType "application/json"
+
+message    user_id roles
+-------    ------- -----
+Pilih role       1 {@{id=1; name=Admin}, @{id=2; name=Manager}}
+
+
+PS C:\Users\Administrator> 1
+1
+PS C:\Users\Administrator> Invoke-RestMethod -Uri "http://localhost:3000/auth/login" `
+>> -Method POST `
+>> -Headers @{ "Content-Type" = "application/json" } `
+>> -Body '{"username":"manager","password":"123456"}'
+
+token
+-----
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJyb2xlX2lkIjoyLCJpYXQiOjE3NzcyODA0ODEsImV4cCI6MTc3NzI4NDA4MX0.etPYC30n192o-DgnFN46Zfg7qqFPRvWQrq2EdaLRaVE
+
+
+PS C:\Users\Administrator> Invoke-RestMethod -Uri "http://localhost:3000/menus" `
+>> -Method GET `
+>> -Headers @{ "Authorization" = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJyb2xlX2lkIjoyLCJpYXQiOjE3NzcyODA0ODEsImV4cCI6MTc3NzI4NDA4MX0.etPYC30n192o-DgnFN46Zfg7qqFPRvWQrq2EdaLRaVE" }
+
+
+id         : 10
+name       : Menu 1
+path       :
+parent_id  :
+menu_order : 1
+children   : {}
+
+id         : 20
+name       : Menu 2
+path       :
+parent_id  :
+menu_order : 2
+children   : {}
+
+
+
+PS C:\Users\Administrator>
