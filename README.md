@@ -63,7 +63,7 @@ http://localhost:3000/auth/select-role
 
 ---
 
-## 🎉 Sampai sini kamu sudah berhasil:
+## 🎉 Sampai sini kalau sudah berhasil:
 
 ✔ Login system
 ✔ Password aman (bcrypt)
@@ -75,19 +75,6 @@ http://localhost:3000/auth/select-role
 
 Kamu sudah punya:
 
-users
-roles
-user_roles
-menus (hierarchy)
-role_menus
-
-✔ SUDAH ADA DASARNYA
-
-Yang sudah ada:
-
-POST /auth/login
-POST /auth/select-role
-GET /menus
 
 ### 1. Role belum punya menu
 
