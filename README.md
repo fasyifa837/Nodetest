@@ -1,8 +1,8 @@
+# Install atau update dlu revo ini
 
+## 🧪 Testing di Postman (atau Postman)
 
-# 🧪 Testing di Postman (atau Postman)
-
-## 👉 Login
+### 👉 Login
 
 **POST**
 
@@ -21,7 +21,7 @@ Body JSON:
 
 ---
 
-## 🔄 Response kalau multi-role:
+### 🔄 Response kalau multi-role:
 
 ```json
 {
@@ -36,7 +36,7 @@ Body JSON:
 
 ---
 
-## 👉 Pilih Role
+### 👉 Pilih Role
 
 **POST**
 
@@ -53,7 +53,7 @@ http://localhost:3000/auth/select-role
 
 ---
 
-## ✅ Response:
+### ✅ Response:
 
 ```json
 {
@@ -63,7 +63,7 @@ http://localhost:3000/auth/select-role
 
 ---
 
-# 🎉 Sampai sini kamu sudah berhasil:
+## 🎉 Sampai sini kamu sudah berhasil:
 
 ✔ Login system
 ✔ Password aman (bcrypt)
@@ -89,7 +89,7 @@ POST /auth/login
 POST /auth/select-role
 GET /menus
 
-## 1. Role belum punya menu
+### 1. Role belum punya menu
 
 Cek tabel ini di PostgreSQL:
 
@@ -101,7 +101,7 @@ Kalau kosong → INI PENYEBABNYA
 
 ---
 
-## 2. Menu belum dibuat
+### 2. Menu belum dibuat
 
 ```sql id="chk2"
 SELECT * FROM menus;
@@ -109,7 +109,7 @@ SELECT * FROM menus;
 
 ---
 
-## 3. Query join tidak menemukan data
+### 3. Query join tidak menemukan data
 
 Karena ini query kamu:
 
@@ -124,9 +124,9 @@ WHERE rm.role_id = $1;
 
 ---
 
-# 🔥 SOLUSI CEPAT (WAJIB DILAKUKAN)
+## 🔥 SOLUSI CEPAT (WAJIB DILAKUKAN)
 
-## STEP 1 — Buat menu dulu
+### STEP 1 — Buat menu dulu
 
 Di PostgreSQL:
 
@@ -139,7 +139,7 @@ VALUES
 
 ---
 
-## STEP 2 — Assign ke role
+### STEP 2 — Assign ke role
 
 ```sql id="fix2"
 INSERT INTO role_menus (role_id, menu_id)
@@ -150,7 +150,7 @@ VALUES
 
 ---
 
-## STEP 3 — TEST ULANG
+### STEP 3 — TEST ULANG
 
 ```powershell id="test1"
 Invoke-RestMethod -Uri "http://localhost:3000/menus" `
