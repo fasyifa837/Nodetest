@@ -1,14 +1,4 @@
-Bagus, ini langkah yang benar 👍 Sekarang kita masuk ke **QA (Quality Assurance) / testing flow** supaya kamu bisa yakin semua fitur sudah sesuai soal.
-
-Aku bikin seperti checklist + cara ngetesnya biar kamu bisa “simulasi perusahaan”.
-
----
-
 # 🧪 🧾 QA FLOW PROJECT KAMU
-
-Kita test dari awal sampai akhir:
-
----
 
 # 1. 🟢 TEST SERVER & DATABASE
 
@@ -187,80 +177,14 @@ SELECT * FROM role_menus;
 
 → tidak boleh akses menu
 
----
 
-# 🧠 8. CHECKLIST SESUAI SOAL
 
-## Soal kamu:
-
-### 1. Node.js + PostgreSQL
-
-✔ DONE
-
-### 2. ERD
-
-✔ DONE
-
-### 3. API dokumentasi
-
-✔ BASIC DONE (but bisa dirapikan lagi)
-
-### 4. JWT login
-
-✔ DONE
-
----
-
-# 🧪 9. BONUS QA (BIAR TERLIHAT PROFESIONAL)
-
-Kalau mau naik nilai:
-
-## ✔ Test pakai Postman Collection
-
-* group auth
-* group menu
-* group role
-
-## ✔ Tambahkan screenshot:
-
-* login sukses
-* token keluar
-* menu muncul
-
----
-
-# 🚀 HASIL QA KAMU
-
-Kalau semua test berhasil:
-
-👉 project kamu sudah **siap dinilai seperti aplikasi perusahaan nyata**
-
----
-
-# 🔥 NEXT LEVEL (OPSIONAL TAPI POWERFUL)
-
-Kalau kamu mau upgrade:
-
-* automated testing (Jest)
-* Swagger documentation
-* menu tree recursion final polish
-
----
-
-# 👉 Sekarang giliran kamu
 
 Coba QA ini dulu:
 
 ✔ login
 ✔ pilih role
 ✔ hit `/menus`
-
-Lalu balas:
-
-👉 **"QA sudah jalan"**
-
-Nanti aku bantu:
-🔥 rapikan final + bikin “versi A+ submission” (biar terlihat profesional banget)
 
 
 PS C:\Users\Administrator> Invoke-RestMethod -Uri "http://localhost:3000/auth/login" `
