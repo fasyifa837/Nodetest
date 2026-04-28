@@ -155,20 +155,6 @@ Sekarang password masih `"123456"` (plain text). Kita harus hash pakai **bcrypt*
 
 ## 👉 Generate hash dulu (sekali saja)
 
-Buat file sementara: `hash.js`
-
-```js
-const bcrypt = require("bcrypt");
-
-async function hashPassword() {
-  const password = "123456";
-  const hashed = await bcrypt.hash(password, 10);
-  console.log(hashed);
-}
-
-hashPassword();
-```
-
 Jalankan:
 
 ```bash
@@ -195,148 +181,18 @@ WHERE username = 'admin';
 
 ---
 
-# 🔐 STEP 2 — Buat Controller Login
 
-📄 `src/controllers/authController.js`
 
-```js
-const db = require("../config/db");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-
-exports.login = async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    // cek user
-    const userResult = await db.query(
-      "SELECT * FROM users WHERE username = $1",
-      [username]
-    );
-
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ message: "User tidak ditemukan" });
-    }
-
-    const user = userResult.rows[0];
-
-    // cek password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Password salah" });
-    }
-
-    // ambil roles
-    const roleResult = await db.query(
-      `SELECT r.id, r.name 
-       FROM roles r
-       JOIN user_roles ur ON ur.role_id = r.id
-       WHERE ur.user_id = $1`,
-      [user.id]
-    );
-
-    const roles = roleResult.rows;
-
-    // kalau lebih dari 1 role
-    if (roles.length > 1) {
-      return res.json({
-        message: "Pilih role",
-        user_id: user.id,
-        roles: roles,
-      });
-    }
-
-    // kalau hanya 1 role → langsung login
-    const token = jwt.sign(
-      {
-        user_id: user.id,
-        role_id: roles[0].id,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    res.json({ token });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-```
-
+    
 ---
 
 # 🔐 STEP 3 — Endpoint Pilih Role
 
-Tambahkan di file yang sama:
-
-```js
-exports.selectRole = async (req, res) => {
-  const { user_id, role_id } = req.body;
-
-  try {
-    const token = jwt.sign(
-      { user_id, role_id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    res.json({ token });
 
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-```
+  
 
----
-
-# 🌐 STEP 4 — Routes
-
-📄 `src/routes/authRoutes.js`
-
-```js
-const express = require("express");
-const router = express.Router();
-const authController = require("../controllers/authController");
-
-router.post("/login", authController.login);
-router.post("/select-role", authController.selectRole);
-
-module.exports = router;
-```
-
----
-
-# 🔌 STEP 5 — Hubungkan ke app.js
-
-📄 `src/app.js`
-
-```js
-const express = require("express");
-const app = express();
-const db = require("./config/db");
-const authRoutes = require("./routes/authRoutes");
-
-app.use(express.json());
-
-db.connect()
-  .then(() => console.log("Database connected"))
-  .catch((err) => console.error(err));
-
-app.use("/auth", authRoutes);
-
-app.get("/", (req, res) => {
-  res.send("API is running...");
-});
-
-module.exports = app;
-```
-
----
-
-# 🧪 STEP 6 — Testing di Postman (atau Postman)
+# 🧪 Testing di Postman (atau Postman)
 
 ## 👉 Login
 
