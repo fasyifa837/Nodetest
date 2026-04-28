@@ -125,10 +125,6 @@ SELECT * FROM user_roles;
 
 ---
 
-# 🔥 Sampai sini kamu sudah punya:
-
-
-# 🚀 NEXT STEP (INTI TUGAS)
 
 Sekarang kita masuk ke bagian paling penting:
 
