@@ -4,37 +4,46 @@ const router = express.Router();
 const auth = require("../middlewares/authMiddleware");
 const role = require("../middlewares/roleMiddleware");
 
-const menuController = require("../controllers/menuController");
+const userController = require("../controllers/userController");
 
-// GET MENU
+// GET ALL USERS
 router.get(
   "/",
   auth,
-  menuController.getMenus
+  role(1),
+  userController.getUsers
 );
 
-// CREATE MENU
+// GET USER BY ID
+router.get(
+  "/:id",
+  auth,
+  role(1),
+  userController.getUserById
+);
+
+// CREATE USER
 router.post(
   "/",
   auth,
   role(1),
-  menuController.createMenu
+  userController.createUser
 );
 
-// UPDATE MENU
+// UPDATE USER
 router.put(
   "/:id",
   auth,
   role(1),
-  menuController.updateMenu
+  userController.updateUser
 );
 
-// DELETE MENU
+// DELETE USER
 router.delete(
   "/:id",
   auth,
   role(1),
-  menuController.deleteMenu
+  userController.deleteUser
 );
 
 module.exports = router;
