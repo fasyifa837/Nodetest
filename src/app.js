@@ -3,7 +3,7 @@ const app = express();
 const db = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const menuRoutes = require("./routes/menuRoutes");
-
+const userRoutes = require("./routes/userRoutes");
 
 app.use(express.json());
 
@@ -18,5 +18,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/menus", menuRoutes);
+
+app.use("/users", userRoutes);
+
 
 module.exports = app;
